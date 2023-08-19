@@ -1,0 +1,263 @@
+---
+title: "Untitled"
+author: "John Denton"
+date: "2023-08-18"
+output: html_document
+---
+
+```{r }
+knitr::opts_chunk$set(echo = TRUE)
+
+library(skimr)
+library(discrim)
+library(kknn)
+library(tidyverse)
+library(dplyr)
+library(tidymodels)
+library(yardstick)
+library(ggplot2)
+library(recipes)
+library(themis)
+library(doParallel)
+library(glmnet)
+library( vip )
+library(formattable)
+library(GGally)
+library(readr)
+```
+
+
+
+```{r}
+
+income <- read_csv("~/Documents/GovHack/2021_GCP_LGA_for_AUS_short-header/2021 Census GCP Local Government Areas for AUS/2021Census_G33_AUST_LGA.csv")
+
+tisp_2011 <- read_csv("~/Downloads/2011_BCP_LGA_for_AUST_short-header/2011 Census BCP Local Government Areas for AUST/AUST/2011Census_B24_AUST_LGA_short.csv")
+
+tisp_2021 <- read_csv("~/Downloads/2021_TSP_LGA_for_AUS_short-header (1)/2021 Census TSP Local Government Areas for AUS/2021Census_T07C_AUST_LGA.csv")
+
+ages <- read_csv("~/Downloads/2021_GCP_all_for_AUS_short-header/2021 Census GCP All Geographies for AUS/POA/AUS/2021Census_G01_AUST_POA.csv")
+View(X2021Census_G01_AUST_POA)
+
+income_2 <- read_csv("~/Downloads/2021_GCP_all_for_AUS_short-header/2021 Census GCP All Geographies for AUS/POA/AUS/2021Census_G02_AUST_POA.csv")
+
+income_2
+
+```
+
+
+```{r}
+head(income_2)
+
+income_2 <- income_2 %>% select(c(1,2,6,9,))
+
+head(income_2)
+
+set.seed( 1234 ) # There is a random element to K-means, so let's set a seed.
+income_kmeans  <- kmeans( income_2 %>% 
+                          select( -POA_CODE_2021 ), 
+                        centers = 10)
+centres <- income_kmeans$centers
+income_kmeans$size
+centres
+
+clusters <- income_2 %>% bind_cols(income_kmeans$cluster)
+
+clusters
+```
+
+
+
+```{r}
+
+tisp_2011 <- tisp_2011 %>% select(c(1,137,138,139,140,141,142,143,144,145))
+
+
+tisp_2021 <- tisp_2021 %>% select(c(1,25,26,27,28,29,30,31,32,33))
+```
+
+
+
+```{r}
+head(tisp_2011)
+head(tisp_2021)
+```
+
+
+
+
+```{r}
+head(clusters)
+clusters <- clusters %>% rename(cluster = 5) %>% mutate( ID = row_number() )
+clusters <- clusters  %>% mutate_at("Median_age_persons", (scale() %>% as.vector))
+prep_clus <- clusters %>%  prep()
+clusters <- juice(clusters)
+
+clu_long <- clu %>% select(-POA_CODE_2021) %>%
+  pivot_longer( cols = PC1:PC2 ) #We want to select the numeric columns only
+clu_long
+```
+
+
+
+```{r}
+clu_long %>% 
+  ggplot( aes( x = name, y = value, colour = cluster ) ) +
+  geom_line( aes( group = ID) ) +
+  theme_minimal()
+
+```
+
+
+
+```{r}
+recipe_cluster <- recipe(clusters) %>%
+  step_normalize(c(Median_age_persons,
+Median_tot_fam_inc_weekly,
+Average_household_size)) %>% step_pca(c(Median_age_persons,
+Median_tot_fam_inc_weekly,
+Average_household_size)) %>% prep()
+
+clu <- recipe_cluster %>% juice()
+
+clu
+```
+
+
+
+```{r}
+clu
+set.seed( 1234 ) # There is a random element to K-means, so let's set a seed.
+income_kmeans_pca  <- kmeans( clu %>% 
+                          select( -POA_CODE_2021, -ID, -cluster), 
+                        centers = 10)
+income_kmeans_pca
+
+clusters_2 <- income_2 %>% bind_cols(income_kmeans_pca$cluster) 
+
+clusters_2 <- clusters_2 %>% rename(cluster = 5)
+
+clusters_2
+
+avg <- clusters_2 %>% group_by(cluster) %>% summarise(mean_age = mean(Median_age_persons), mean_inc = mean(Median_tot_fam_inc_weekly), Average_household_size=mean(Average_household_size)) %>% arrange(mean_inc)
+
+avg
+```
+
+
+
+```{r}
+
+tidy( recipe_cluster, 2 )
+tidy( recipe_cluster, 2 ) %>% 
+  filter( component %in% c("PC1", "PC2", "PC3") ) %>% 
+  group_by( component ) %>% 
+  top_n(10, abs(value) ) %>% 
+  ungroup() %>% 
+  ggplot( aes( x = abs(value), y = terms, fill = value > 0 ) ) +
+  geom_col(show.legend = F) +
+  facet_wrap( ~ component, scales = "free") +
+  ylab(NULL) +labs(title = "Component loadings from dimensions", caption = "Positive relationships in green and negative in red")
+```
+
+
+
+```{r}
+```
+
+
+
+```{r}
+
+```
+
+
+
+```{r}
+```
+
+
+
+```{r}
+
+```
+
+
+
+```{r}
+```
+
+
+
+```{r}
+
+```
+
+
+
+```{r}
+```
+
+
+
+```{r}
+
+```
+
+
+
+```{r}
+```
+
+
+
+```{r}
+
+```
+
+
+
+```{r}
+```
+
+
+
+```{r}
+
+```
+
+
+
+```{r}
+```
+
+
+
+```{r}
+
+```
+
+
+
+```{r}
+```
+
+
+
+```{r}
+
+```
+
+
+
+```{r}
+```
+```{r}
+
+```
+
+
+
+```{r}
+```
+
